@@ -60,6 +60,12 @@ public class MerchantService {
         return merchants.findById(id).orElseThrow(() -> new ResourceNotFoundException("Merchant", id));
     }
 
+    @Transactional(readOnly = true)
+    public Merchant findByOperator(Long userId) {
+        return merchants.findByOperatorId(userId)
+                .orElseThrow(() -> new BusinessRuleException("User " + userId + " does not operate a merchant shop."));
+    }
+
     public Merchant update(Long id, MerchantRequest request) {
         Merchant merchant = findById(id);
         String code = request.code().trim().toUpperCase();

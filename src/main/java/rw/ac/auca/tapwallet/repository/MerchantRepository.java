@@ -14,4 +14,6 @@ public interface MerchantRepository extends JpaRepository<Merchant, Long> {
     boolean existsByCodeAndIdNot(String code, Long id);
 
     boolean existsByOperatorId(Long userId);
+
+    Optional<Merchant> findByOperatorId(Long userId);
 }
