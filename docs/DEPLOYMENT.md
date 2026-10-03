@@ -28,7 +28,7 @@ This mode uses H2 (`jdbc:h2:mem:tapwallet`), the in-memory document adapter, and
 
 ```bash
 cp .env.example .env
-# Change JWT_SECRET and passwords in .env
+# Set JWT_SECRET to 32+ random characters and change passwords for a stable deployment.
 docker compose up --build -d
 docker compose ps
 ```

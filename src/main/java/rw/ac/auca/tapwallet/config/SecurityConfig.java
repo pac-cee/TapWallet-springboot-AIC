@@ -30,6 +30,7 @@ import rw.ac.auca.tapwallet.exception.ApiError;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.List;
 
@@ -90,13 +91,23 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtEncoder jwtEncoder(@Value("${tapwallet.security.jwt-secret}") String secret) {
-        return new NimbusJwtEncoder(new ImmutableSecret<>(secretKey(secret)));
+    SecretKey jwtSecretKey(@Value("${tapwallet.security.jwt-secret:}") String configuredSecret) {
+        if (configuredSecret != null && !configuredSecret.isBlank()) {
+            return secretKey(configuredSecret);
+        }
+        byte[] generated = new byte[32];
+        new SecureRandom().nextBytes(generated);
+        return new SecretKeySpec(generated, "HmacSHA256");
     }
 
     @Bean
-    JwtDecoder jwtDecoder(@Value("${tapwallet.security.jwt-secret}") String secret) {
-        return NimbusJwtDecoder.withSecretKey(secretKey(secret)).macAlgorithm(MacAlgorithm.HS256).build();
+    JwtEncoder jwtEncoder(SecretKey jwtSecretKey) {
+        return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSecretKey));
+    }
+
+    @Bean
+    JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
+        return NimbusJwtDecoder.withSecretKey(jwtSecretKey).macAlgorithm(MacAlgorithm.HS256).build();
     }
 
     private SecretKey secretKey(String value) {

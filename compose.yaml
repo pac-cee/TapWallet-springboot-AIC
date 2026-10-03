@@ -58,7 +58,7 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-tapwallet}
       RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:-tapwallet_dev}
-      JWT_SECRET: ${JWT_SECRET:-tapwallet-docker-secret-key-change-before-deployment-2026}
+      JWT_SECRET: ${JWT_SECRET:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     ports:
       - "8080:8080"
