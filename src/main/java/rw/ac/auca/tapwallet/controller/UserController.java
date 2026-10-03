@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import rw.ac.auca.tapwallet.domain.User;
 import rw.ac.auca.tapwallet.dto.UserRequest;
+import rw.ac.auca.tapwallet.exception.BusinessRuleException;
 import rw.ac.auca.tapwallet.service.UserService;
 
 import java.util.List;
@@ -51,7 +54,8 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/freeze")
-    public User freeze(@PathVariable Long id) {
+    public User freeze(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        preventSelfLockout(id, jwt, "freeze");
         return userService.freeze(id);
     }
 
@@ -61,8 +65,15 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        preventSelfLockout(id, jwt, "delete");
         userService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private void preventSelfLockout(Long targetId, Jwt jwt, String action) {
+        if (jwt != null && targetId.equals(((Number) jwt.getClaim("userId")).longValue())) {
+            throw new BusinessRuleException("You cannot " + action + " your own signed-in administrator account.");
+        }
     }
 }

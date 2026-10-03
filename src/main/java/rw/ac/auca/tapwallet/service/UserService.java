@@ -1,6 +1,7 @@
 package rw.ac.auca.tapwallet.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import rw.ac.auca.tapwallet.domain.AccountStatus;
 import rw.ac.auca.tapwallet.domain.User;
@@ -27,11 +28,14 @@ public class UserService {
     private final UserRepository users;
     private final WalletRepository wallets;
     private final MerchantRepository merchants;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository users, WalletRepository wallets, MerchantRepository merchants) {
+    public UserService(UserRepository users, WalletRepository wallets, MerchantRepository merchants,
+                       PasswordEncoder passwordEncoder) {
         this.users = users;
         this.wallets = wallets;
         this.merchants = merchants;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public User create(UserRequest request) {
@@ -43,7 +47,11 @@ public class UserService {
         if (users.existsByPhone(phone)) {
             throw new DuplicateResourceException("Phone " + phone + " is already registered.");
         }
-        return users.save(new User(request.fullName().trim(), email, phone, request.role()));
+        String rawPassword = request.password() == null || request.password().isBlank()
+                ? "ChangeMe@123"
+                : request.password();
+        return users.save(new User(request.fullName().trim(), email, phone, request.role(),
+                passwordEncoder.encode(rawPassword)));
     }
 
     @Transactional(readOnly = true)
@@ -73,6 +81,9 @@ public class UserService {
         user.setEmail(email);
         user.setPhone(phone);
         user.setRole(request.role());
+        if (request.password() != null && !request.password().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(request.password()));
+        }
         return users.save(user);
     }
 
