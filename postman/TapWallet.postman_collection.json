@@ -1,11 +1,102 @@
 {
   "info": {
     "_postman_id": "ffd63daa-dc0a-45d8-9be5-b724aa0a2f41",
-    "name": "TapWallet REST API (Assignment 4)",
-    "description": "Spring Boot REST API for the TapWallet digital wallet.\n\nRun the app (mvn spring-boot:run), then run folders top to bottom: Users -> Wallets -> Merchants -> Payments. Requests save created ids into collection variables (userId, walletId, merchantId, paymentId). Requests prefixed [Rule] demonstrate a business rule and expect an error status.\n\nSeed data: users 1-5 (1 admin, 2-3 customers Alice/Eric, 4-5 merchant operators), wallets 1-2 (Alice 50000 RWF, Eric 12000 RWF), merchants 1-2 (CAF-001 Kigali Cafe, SHP-002 Nyarugenge Shop).",
+    "name": "TapWallet Full Project API",
+    "description": "Authenticated Spring Boot REST API for the TapWallet Web Technology project. Set the three password collection variables from README, then run 0. Authentication / Admin login first; it stores {{accessToken}}, which the collection uses as a bearer token. The actor-scoped requests demonstrate customer and merchant data isolation. Remaining folders cover CRUD, validation, business rules, payments, and reversal. Seed data: users 1-5, wallets 1-2, merchants 1-2.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
+    {
+      "name": "0. Authentication",
+      "item": [
+        {
+          "name": "Admin login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@tapwallet.rw\",\n  \"password\": \"{{adminPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "description": "Authenticates the administrator and stores the default collection bearer token."
+          },
+          "response": [],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test(\"Admin login succeeds\", () => pm.response.to.have.status(200));", "const j = pm.response.json(); pm.collectionVariables.set(\"accessToken\", j.accessToken);", "pm.test(\"Role is ADMIN\", () => pm.expect(j.role).to.eql(\"ADMIN\"));"] } }]
+        },
+        {
+          "name": "Customer login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice@tapwallet.rw\",\n  \"password\": \"{{customerPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          },
+          "response": [],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test(\"Customer login succeeds\", () => pm.response.to.have.status(200));", "const j = pm.response.json(); pm.collectionVariables.set(\"customerToken\", j.accessToken);", "pm.test(\"Role is CUSTOMER\", () => pm.expect(j.role).to.eql(\"CUSTOMER\"));"] } }]
+        },
+        {
+          "name": "Merchant login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"cafe@tapwallet.rw\",\n  \"password\": \"{{merchantPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          },
+          "response": [],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test(\"Merchant login succeeds\", () => pm.response.to.have.status(200));", "const j = pm.response.json(); pm.collectionVariables.set(\"merchantToken\", j.accessToken);", "pm.test(\"Role is MERCHANT\", () => pm.expect(j.role).to.eql(\"MERCHANT\"));"] } }]
+        },
+        {
+          "name": "[Security] Missing token returns 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"] }
+          },
+          "response": [],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test(\"Anonymous request is rejected\", () => pm.response.to.have.status(401));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "0b. Actor-scoped access",
+      "item": [
+        {
+          "name": "Customer - my wallet",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/me/wallet", "host": ["{{baseUrl}}"], "path": ["api", "me", "wallet"] }
+          },
+          "response": [],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test(\"Customer sees own wallet\", () => pm.response.to.have.status(200));", "pm.test(\"Owner is Alice\", () => pm.expect(pm.response.json().owner.email).to.eql(\"alice@tapwallet.rw\"));"] } }]
+        },
+        {
+          "name": "Merchant - my shop",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{merchantToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/me/merchant", "host": ["{{baseUrl}}"], "path": ["api", "me", "merchant"] }
+          },
+          "response": [],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test(\"Merchant sees own shop\", () => pm.response.to.have.status(200));", "pm.test(\"Shop code is CAF-001\", () => pm.expect(pm.response.json().code).to.eql(\"CAF-001\"));"] } }]
+        },
+        {
+          "name": "[Security] Customer cannot list users",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"] }
+          },
+          "response": [],
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test(\"Wrong role returns 403\", () => pm.response.to.have.status(403));"] } }]
+        }
+      ]
+    },
     {
       "name": "1. Users",
       "item": [
@@ -2111,10 +2202,40 @@
       ]
     }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{accessToken}}", "type": "string" }
+    ]
+  },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:8080"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "customerToken",
+      "value": ""
+    },
+    {
+      "key": "merchantToken",
+      "value": ""
+    },
+    {
+      "key": "adminPassword",
+      "value": ""
+    },
+    {
+      "key": "customerPassword",
+      "value": ""
+    },
+    {
+      "key": "merchantPassword",
+      "value": ""
     },
     {
       "key": "userId",
