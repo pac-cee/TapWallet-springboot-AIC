@@ -61,6 +61,39 @@ export interface Activity {
   occurredAt: string;
 }
 
+export interface MerchantPerformance {
+  merchantId: number;
+  businessName: string;
+  code: string;
+  payments: number;
+  volume: number;
+}
+
+export interface DailyVolume {
+  date: string;
+  payments: number;
+  volume: number;
+}
+
+export interface ReportSummary {
+  from: string;
+  to: string;
+  generatedAt: string;
+  totalUsers: number;
+  activeUsers: number;
+  totalMerchants: number;
+  activeMerchants: number;
+  totalPayments: number;
+  completedPayments: number;
+  reversedPayments: number;
+  completedVolume: number;
+  reversedVolume: number;
+  walletBalances: number;
+  merchantRevenue: number;
+  topMerchants: MerchantPerformance[];
+  dailyVolume: DailyVolume[];
+}
+
 export interface ApiError {
   message?: string;
   fieldErrors: Record<string, string>;

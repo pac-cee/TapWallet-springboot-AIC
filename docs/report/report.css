@@ -1,0 +1,235 @@
+:root {
+  --ink: #17201e;
+  --muted: #5d6b67;
+  --accent: #0f7664;
+  --accent-deep: #0b574b;
+  --soft: #eef8f5;
+  --line: #d8e2df;
+  --paper: #ffffff;
+}
+
+@page {
+  size: A4;
+  margin: 17mm 15mm 19mm;
+  @bottom-left {
+    content: "TapWallet · Web Technology";
+    color: #6c7875;
+    font-size: 8pt;
+  }
+  @bottom-right {
+    content: counter(page);
+    color: #6c7875;
+    font-size: 8pt;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { background: #edf2f0; }
+
+body {
+  max-width: 210mm;
+  margin: 0 auto;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.48;
+}
+
+body > h1:first-of-type { display: none; }
+
+.cover-page {
+  min-height: 245mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  page-break-after: always;
+  position: relative;
+  padding: 18mm 12mm;
+}
+
+.cover-mark {
+  width: 18mm;
+  height: 18mm;
+  display: grid;
+  place-items: center;
+  border-radius: 5mm;
+  background: var(--accent);
+  color: white;
+  font-size: 16pt;
+  font-weight: 750;
+  letter-spacing: -0.8px;
+}
+
+.cover-kicker {
+  margin: 20mm 0 2mm;
+  color: var(--accent-deep);
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.cover-page h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 38pt;
+  line-height: 1;
+  letter-spacing: -1.6px;
+}
+
+.cover-subtitle {
+  max-width: 130mm;
+  margin: 5mm 0 0;
+  color: var(--muted);
+  font-size: 17pt;
+  line-height: 1.25;
+}
+
+.cover-rule {
+  width: 30mm;
+  height: 1.4mm;
+  margin: 13mm 0 10mm;
+  background: var(--accent);
+  border-radius: 2mm;
+}
+
+.cover-meta {
+  display: grid;
+  grid-template-columns: 34mm 1fr;
+  gap: 2.5mm 5mm;
+  margin: 0;
+  max-width: 145mm;
+  font-size: 10pt;
+}
+
+.cover-meta dt { color: var(--muted); }
+.cover-meta dd { margin: 0; font-weight: 620; }
+
+.cover-note {
+  margin-top: 25mm;
+  color: var(--muted);
+  font-size: 8.5pt;
+  letter-spacing: .25px;
+}
+
+#TOC {
+  page-break-after: always;
+  padding-top: 4mm;
+}
+
+#TOC::before {
+  content: "Contents";
+  display: block;
+  margin-bottom: 7mm;
+  color: var(--ink);
+  font-size: 24pt;
+  font-weight: 760;
+  letter-spacing: -.6px;
+}
+
+#TOC ul { list-style: none; padding: 0; margin: 0; }
+#TOC > ul > li > a { display: none; }
+#TOC > ul > li { padding: 0; }
+#TOC > ul > li > ul { display: block; }
+#TOC > ul > li > ul > li { border-top: .25mm solid var(--line); padding: 1.7mm 0; }
+#TOC ul ul ul { display: none; }
+#TOC a { color: var(--ink); text-decoration: none; font-weight: 620; }
+
+h2 {
+  margin: 10mm 0 4mm;
+  padding-top: 3mm;
+  border-top: .45mm solid var(--accent);
+  color: var(--ink);
+  font-size: 18pt;
+  line-height: 1.18;
+  letter-spacing: -.35px;
+  break-after: avoid;
+}
+
+h3 {
+  margin: 7mm 0 2.5mm;
+  color: var(--accent-deep);
+  font-size: 12.5pt;
+  line-height: 1.25;
+  break-after: avoid;
+}
+
+h4 { margin: 5mm 0 2mm; font-size: 10.5pt; break-after: avoid; }
+p { margin: 2mm 0 3mm; }
+strong { font-weight: 700; }
+a { color: var(--accent-deep); text-underline-offset: 1.5px; }
+
+ul, ol { margin: 2mm 0 4mm; padding-left: 6mm; }
+li { margin: 1.2mm 0; }
+
+table {
+  width: 100%;
+  margin: 3mm 0 6mm;
+  border-collapse: collapse;
+  font-size: 8.1pt;
+  line-height: 1.35;
+  break-inside: auto;
+}
+
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
+th, td {
+  padding: 2.1mm 2.4mm;
+  border: .25mm solid var(--line);
+  vertical-align: top;
+  text-align: left;
+}
+th { background: var(--soft); color: var(--accent-deep); font-weight: 700; }
+tbody tr:nth-child(even) td { background: #fafcfb; }
+
+code {
+  color: #174a40;
+  background: #edf5f3;
+  border-radius: 1mm;
+  padding: .25mm 1mm;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: .9em;
+}
+
+pre {
+  margin: 3mm 0 5mm;
+  padding: 3.5mm;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  border: .25mm solid var(--line);
+  border-radius: 2mm;
+  background: #f6f8f7;
+  color: #24302d;
+  font: 7.8pt/1.42 "SFMono-Regular", Consolas, monospace;
+  break-inside: avoid;
+}
+pre code { padding: 0; background: transparent; color: inherit; }
+
+.mermaid {
+  width: 100%;
+  margin: 4mm auto 7mm;
+  padding: 3mm;
+  border: .25mm solid var(--line);
+  border-radius: 2.5mm;
+  background: #fbfdfc;
+  text-align: center;
+  break-inside: avoid;
+}
+.mermaid svg { max-width: 100% !important; max-height: 150mm; }
+
+blockquote {
+  margin: 4mm 0;
+  padding: 3mm 4mm;
+  border-left: 1mm solid var(--accent);
+  background: var(--soft);
+  color: #30413d;
+}
+
+@media print {
+  html, body { background: white; }
+  body { max-width: none; }
+  h2 { page-break-before: auto; }
+  a { color: inherit; text-decoration: none; }
+}

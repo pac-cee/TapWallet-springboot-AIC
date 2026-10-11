@@ -43,6 +43,20 @@ export async function apiFetch<T>(path: string, session?: Session | null, init?:
   return response.json() as Promise<T>;
 }
 
+export async function apiDownload(path: string, session: Session): Promise<Blob> {
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: { Authorization: `Bearer ${session.accessToken}` },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    let error: Partial<ApiError> = {};
+    try { error = await response.json(); } catch { /* Use the fallback below. */ }
+    if (response.status === 401) window.dispatchEvent(new Event("tapwallet:unauthorized"));
+    throw new ApiClientError(error.message ?? friendlyStatusMessage(response.status), response.status);
+  }
+  return response.blob();
+}
+
 function friendlyStatusMessage(status: number) {
   if (status === 401) return "Your session has expired. Please sign in again.";
   if (status === 403) return "You do not have permission to perform this action.";

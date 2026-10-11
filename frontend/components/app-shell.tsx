@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, Gauge, LogOut, Send, Settings2, Users } from "lucide-react";
+import { Activity, BarChart3, Gauge, LogOut, Send, Settings2, Users } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { Logo } from "@/components/logo";
 
@@ -12,6 +12,7 @@ const baseLinks = [
   { href: "/pay", label: "Pay", icon: Send, roles: ["CUSTOMER"] },
   { href: "/activity", label: "Activity", icon: Activity, roles: ["ADMIN", "CUSTOMER", "MERCHANT"] },
   { href: "/admin", label: "Manage", icon: Users, roles: ["ADMIN"] },
+  { href: "/reports", label: "Reports", icon: BarChart3, roles: ["ADMIN"] },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

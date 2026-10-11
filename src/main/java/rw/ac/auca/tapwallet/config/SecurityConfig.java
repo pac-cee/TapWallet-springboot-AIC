@@ -69,7 +69,7 @@ public class SecurityConfig {
                         }))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/auth/**", "/actuator/health", "/h2-console/**").permitAll()
-                        .requestMatchers("/api/users/**", "/api/wallets/**", "/api/activity/**").hasRole("ADMIN")
+                        .requestMatchers("/api/users/**", "/api/wallets/**", "/api/activity/**", "/api/reports/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/merchants/**").authenticated()
                         .requestMatchers("/api/merchants/**").hasRole("ADMIN")
                         .requestMatchers("/api/payments/**").hasRole("ADMIN")

@@ -50,7 +50,8 @@ class WalletControllerTest {
 
         mvc.perform(put("/api/wallets/" + id).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currency\":\"USD\",\"status\":\"ACTIVE\"}"))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.currency").value(containsString("RWF only")));
 
         mvc.perform(post("/api/wallets/" + id + "/withdraw").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"amount\":2500}"))

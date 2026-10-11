@@ -13,8 +13,10 @@ import rw.ac.auca.tapwallet.exception.ResourceNotFoundException;
 import rw.ac.auca.tapwallet.repository.MerchantRepository;
 import rw.ac.auca.tapwallet.repository.PaymentRepository;
 import rw.ac.auca.tapwallet.repository.UserRepository;
+import rw.ac.auca.tapwallet.security.CurrentActorService;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Business rules:
@@ -31,11 +33,16 @@ public class MerchantService {
     private final MerchantRepository merchants;
     private final UserRepository users;
     private final PaymentRepository payments;
+    private final ActivityLogService activityLog;
+    private final CurrentActorService currentActor;
 
-    public MerchantService(MerchantRepository merchants, UserRepository users, PaymentRepository payments) {
+    public MerchantService(MerchantRepository merchants, UserRepository users, PaymentRepository payments,
+                           ActivityLogService activityLog, CurrentActorService currentActor) {
         this.merchants = merchants;
         this.users = users;
         this.payments = payments;
+        this.activityLog = activityLog;
+        this.currentActor = currentActor;
     }
 
     public Merchant register(MerchantRequest request) {
@@ -47,7 +54,9 @@ public class MerchantService {
         if (merchants.existsByOperatorId(operator.getId())) {
             throw new DuplicateResourceException("User " + operator.getId() + " already operates a merchant shop.");
         }
-        return merchants.save(new Merchant(request.businessName().trim(), code, operator));
+        Merchant saved = merchants.save(new Merchant(request.businessName().trim(), code, operator));
+        record("MERCHANT_REGISTERED", saved, Map.of("code", saved.getCode()));
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -81,19 +90,25 @@ public class MerchantService {
         }
         merchant.setBusinessName(request.businessName().trim());
         merchant.setCode(code);
-        return merchants.save(merchant);
+        Merchant saved = merchants.save(merchant);
+        record("MERCHANT_UPDATED", saved, Map.of("code", saved.getCode()));
+        return saved;
     }
 
     public Merchant freeze(Long id) {
         Merchant merchant = findById(id);
         merchant.setStatus(AccountStatus.FROZEN);
-        return merchants.save(merchant);
+        Merchant saved = merchants.save(merchant);
+        record("MERCHANT_FROZEN", saved, Map.of("status", saved.getStatus().name()));
+        return saved;
     }
 
     public Merchant activate(Long id) {
         Merchant merchant = findById(id);
         merchant.setStatus(AccountStatus.ACTIVE);
-        return merchants.save(merchant);
+        Merchant saved = merchants.save(merchant);
+        record("MERCHANT_ACTIVATED", saved, Map.of("status", saved.getStatus().name()));
+        return saved;
     }
 
     public void delete(Long id) {
@@ -102,6 +117,7 @@ public class MerchantService {
             throw new BusinessRuleException("A merchant with payment history cannot be deleted. Freeze it instead.");
         }
         merchants.delete(merchant);
+        record("MERCHANT_DELETED", merchant, Map.of("code", merchant.getCode()));
     }
 
     private User requireOperator(Long userId) {
@@ -114,5 +130,10 @@ public class MerchantService {
             throw new BusinessRuleException("A frozen user cannot operate a shop.");
         }
         return operator;
+    }
+
+    private void record(String type, Merchant merchant, Map<String, String> metadata) {
+        activityLog.record(type, currentActor.idOr(merchant.getOperator().getId()), "Merchant", merchant.getId(),
+                type.replace('_', ' ').toLowerCase(), metadata);
     }
 }

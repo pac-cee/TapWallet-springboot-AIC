@@ -7,3 +7,7 @@ target/
 .settings/
 .project
 .classpath
+.env
+.env.*
+!.env.example
+output/pdf/*.html

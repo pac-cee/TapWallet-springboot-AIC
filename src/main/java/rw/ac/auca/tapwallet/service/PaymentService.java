@@ -11,6 +11,7 @@ import rw.ac.auca.tapwallet.exception.ResourceNotFoundException;
 import rw.ac.auca.tapwallet.event.NotificationEvent;
 import rw.ac.auca.tapwallet.event.NotificationPublisher;
 import rw.ac.auca.tapwallet.repository.PaymentRepository;
+import rw.ac.auca.tapwallet.security.CurrentActorService;
 
 import java.util.List;
 import java.util.Map;
@@ -34,14 +35,17 @@ public class PaymentService {
     private final MerchantService merchantService;
     private final ActivityLogService activityLog;
     private final NotificationPublisher notificationPublisher;
+    private final CurrentActorService currentActor;
 
     public PaymentService(PaymentRepository payments, WalletService walletService, MerchantService merchantService,
-                          ActivityLogService activityLog, NotificationPublisher notificationPublisher) {
+                          ActivityLogService activityLog, NotificationPublisher notificationPublisher,
+                          CurrentActorService currentActor) {
         this.payments = payments;
         this.walletService = walletService;
         this.merchantService = merchantService;
         this.activityLog = activityLog;
         this.notificationPublisher = notificationPublisher;
+        this.currentActor = currentActor;
     }
 
     public Payment pay(PaymentRequest request) {
@@ -63,13 +67,16 @@ public class PaymentService {
         wallet.debit(request.amount());
         merchant.receive(request.amount());
         Payment payment = payments.save(new Payment(wallet, merchant, request.amount(), request.note()));
-        activityLog.record("PAYMENT_COMPLETED", wallet.getOwner().getId(), "Payment", payment.getId(),
+        activityLog.record("PAYMENT_COMPLETED", currentActor.idOr(wallet.getOwner().getId()), "Payment", payment.getId(),
                 "Payment " + payment.getReference() + " completed",
                 Map.of("amount", payment.getAmount().toPlainString(), "currency", payment.getCurrency(),
                         "merchantCode", merchant.getCode()));
-        notificationPublisher.publish(NotificationEvent.of("payment.completed", wallet.getOwner().getEmail(),
+        notificationPublisher.publish(NotificationEvent.email("payment.completed", wallet.getOwner().getEmail(),
                 "Your payment of " + payment.getAmount() + " " + payment.getCurrency() + " to "
                         + merchant.getBusinessName() + " was completed.",
+                Map.of("reference", payment.getReference())));
+        notificationPublisher.publish(NotificationEvent.sms("payment.completed", wallet.getOwner().getPhone(),
+                "TapWallet: payment " + payment.getReference() + " completed.",
                 Map.of("reference", payment.getReference())));
         return payment;
     }
@@ -105,12 +112,16 @@ public class PaymentService {
         payment.getMerchant().refund(payment.getAmount());
         payment.getWallet().credit(payment.getAmount());
         Payment saved = payments.save(payment);
-        activityLog.record("PAYMENT_REVERSED", payment.getWallet().getOwner().getId(), "Payment", payment.getId(),
+        activityLog.record("PAYMENT_REVERSED", currentActor.idOr(payment.getWallet().getOwner().getId()), "Payment", payment.getId(),
                 "Payment " + payment.getReference() + " reversed",
                 Map.of("amount", payment.getAmount().toPlainString(), "currency", payment.getCurrency()));
-        notificationPublisher.publish(NotificationEvent.of("payment.reversed",
+        notificationPublisher.publish(NotificationEvent.email("payment.reversed",
                 payment.getWallet().getOwner().getEmail(),
                 "Payment " + payment.getReference() + " was reversed and refunded.",
+                Map.of("reference", payment.getReference())));
+        notificationPublisher.publish(NotificationEvent.sms("payment.reversed",
+                payment.getWallet().getOwner().getPhone(),
+                "TapWallet: payment " + payment.getReference() + " was reversed and refunded.",
                 Map.of("reference", payment.getReference())));
         return saved;
     }

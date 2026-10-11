@@ -1107,7 +1107,7 @@
           ]
         },
         {
-          "name": "[Rule] Change currency with balance - 422",
+          "name": "[Rule] Unsupported currency - 400",
           "request": {
             "method": "PUT",
             "header": [
@@ -1145,7 +1145,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 422\", () => pm.response.to.have.status(422));"
+                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));"
                 ]
               }
             }
@@ -2198,6 +2198,79 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "5. Reports",
+      "item": [
+        {
+          "name": "Admin report summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "summary"]
+            },
+            "description": "ADMIN-only operational and financial summary. Optional ISO dates: ?from=2026-10-01&to=2026-10-31"
+          },
+          "response": [],
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                "pm.test(\"Report has financial totals\", () => { const body = pm.response.json(); pm.expect(body).to.have.property('completedVolume'); pm.expect(body).to.have.property('topMerchants'); });"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Export payment report CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/payments.csv",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "payments.csv"]
+            },
+            "description": "Downloads transaction-level report evidence using the same optional period filter."
+          },
+          "response": [],
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                "pm.test(\"Response is CSV\", () => pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv'));"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "[Security] Customer cannot access reports",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}", "type": "text" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "summary"]
+            }
+          },
+          "response": [],
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": ["pm.test(\"Status is 403\", () => pm.response.to.have.status(403));"]
+            }
+          }]
         }
       ]
     }

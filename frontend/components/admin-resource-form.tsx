@@ -128,7 +128,7 @@ function WalletForm({ editor, session, users, onSaved, onCancel }: {
   const customers = users.filter((user) => user.role === "CUSTOMER");
   const [ownerId, setOwnerId] = useState(String(record?.owner.id ?? customers[0]?.id ?? ""));
   const [openingBalance, setOpeningBalance] = useState("0");
-  const [currency, setCurrency] = useState(record?.currency ?? "RWF");
+  const currency = "RWF";
   const [status, setStatus] = useState(record?.status ?? "ACTIVE");
   const form = useAdminForm();
 
@@ -157,7 +157,7 @@ function WalletForm({ editor, session, users, onSaved, onCancel }: {
         <input type="number" min="0" step="1" value={openingBalance} onChange={(event) => setOpeningBalance(event.target.value)} />
       </FormField>}
       <FormField label="Currency" name="currency" error={form.fields.currency}>
-        <input value={currency} maxLength={3} onChange={(event) => setCurrency(event.target.value.toUpperCase())} required />
+        <input value={currency} readOnly aria-readonly="true" />
       </FormField>
       {record && <FormField label="Status" name="status" error={form.fields.status}>
         <select value={status} onChange={(event) => setStatus(event.target.value as Wallet["status"])}>

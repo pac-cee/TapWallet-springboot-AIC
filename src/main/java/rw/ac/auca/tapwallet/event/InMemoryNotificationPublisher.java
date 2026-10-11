@@ -18,7 +18,8 @@ public class InMemoryNotificationPublisher implements NotificationPublisher {
     @Override
     public void publish(NotificationEvent event) {
         publishedEvents.add(event);
-        log.info("In-memory notification event: type={}, recipient={}", event.type(), event.recipient());
+        log.info("In-memory notification event: type={}, channel={}, recipient={}",
+                event.type(), event.channel(), event.recipient());
     }
 
     public List<NotificationEvent> publishedEvents() {

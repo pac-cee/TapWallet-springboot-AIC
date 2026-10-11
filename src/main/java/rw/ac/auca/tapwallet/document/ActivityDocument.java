@@ -2,6 +2,8 @@ package rw.ac.auca.tapwallet.document;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
@@ -9,6 +11,10 @@ import java.util.Map;
 import java.util.UUID;
 
 @Document(collection = "activity_log")
+@CompoundIndexes({
+        @CompoundIndex(name = "idx_activity_event_occurred", def = "{'eventType': 1, 'occurredAt': -1}"),
+        @CompoundIndex(name = "idx_activity_actor_occurred", def = "{'actorUserId': 1, 'occurredAt': -1}")
+})
 public class ActivityDocument {
 
     @Id

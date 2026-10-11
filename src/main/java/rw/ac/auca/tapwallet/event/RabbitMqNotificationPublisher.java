@@ -16,6 +16,7 @@ public class RabbitMqNotificationPublisher implements NotificationPublisher {
 
     @Override
     public void publish(NotificationEvent event) {
-        rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE, "notification." + event.type(), event);
+        String routingKey = "notification." + event.channel().name().toLowerCase() + "." + event.type();
+        rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE, routingKey, event);
     }
 }

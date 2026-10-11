@@ -43,7 +43,7 @@ Services:
 | PostgreSQL | Internal only | Relational operational data |
 | MongoDB | Internal only | Activity documents |
 
-The backend activates `postgres,mongodb,rabbitmq`, waits for all three dependencies to become healthy, and exposes its own Actuator health check before the frontend starts.
+The backend activates `postgres,mongodb,rabbitmq`, waits for all three dependencies to become healthy, declares the notification exchange/queue, starts its simulated email/SMS consumer, and exposes its own Actuator health check before the frontend starts.
 
 ## Useful controls
 
@@ -67,7 +67,7 @@ docker compose down
 - Set automated backups and test restoration.
 - Use `ddl-auto=validate` plus migrations (Flyway/Liquibase) after the academic prototype.
 - Send logs/metrics to a central service and alert on health failures.
-- Add a real email/SMS consumer for `tapwallet.notifications`.
+- Replace `LoggingNotificationDeliveryService` with an approved email/SMS provider when real delivery is required; never commit provider credentials.
 
 ## Rollback
 

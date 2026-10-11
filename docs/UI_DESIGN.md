@@ -33,6 +33,8 @@ Designing a responsive digital wallet for customers, merchants, and administrato
 | System sans family | Finance/product typography craft | One neutral family, weight for hierarchy | Fast, legible, and requires no external font request. |
 | Cards are limited to interactive/summary surfaces | Anti-AI-slop craft | Dividers/sections before cards | Prevents “card soup” and clarifies structure. |
 | Button press uses `scale(.96)` | Better UI motion | Exact, interruptible press response | Tactile feedback without distracting animation. |
+| Reports keep metrics above trends and rankings | Stripe/Paystack reporting patterns | Summary first, evidence second | Administrators can understand the period before inspecting detail. |
+| Reporting filters stay explicit | User constraint + finance-product convention | Visible From/To controls and named CSV export | The report remains reproducible and defensible in a school demonstration. |
 
 ## Accessibility rules
 

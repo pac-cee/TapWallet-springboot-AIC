@@ -33,11 +33,15 @@ class SecurityIntegrationTest {
         mvc.perform(get("/api/users").header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("You do not have permission to perform this action."));
+        mvc.perform(get("/api/reports/summary").header("Authorization", "Bearer " + customerToken))
+                .andExpect(status().isForbidden());
         mvc.perform(post("/api/payments").header("Authorization", "Bearer " + customerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"walletId\":1,\"merchantId\":1,\"amount\":100}"))
                 .andExpect(status().isForbidden());
         mvc.perform(get("/api/users").header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/reports/summary").header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
         mvc.perform(patch("/api/users/1/freeze").header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isUnprocessableEntity())
@@ -45,6 +49,11 @@ class SecurityIntegrationTest {
         mvc.perform(get("/api/me/wallet").header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.owner.email").value("alice@tapwallet.rw"));
+        mvc.perform(post("/api/me/wallet/top-up").header("Authorization", "Bearer " + customerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":1000}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("The requested API endpoint does not exist."));
     }
 
     @Test

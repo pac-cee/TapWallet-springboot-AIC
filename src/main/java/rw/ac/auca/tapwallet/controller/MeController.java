@@ -16,7 +16,6 @@ import rw.ac.auca.tapwallet.domain.Payment;
 import rw.ac.auca.tapwallet.domain.Role;
 import rw.ac.auca.tapwallet.domain.User;
 import rw.ac.auca.tapwallet.domain.Wallet;
-import rw.ac.auca.tapwallet.dto.AmountRequest;
 import rw.ac.auca.tapwallet.dto.CustomerPaymentRequest;
 import rw.ac.auca.tapwallet.dto.PaymentRequest;
 import rw.ac.auca.tapwallet.service.MerchantService;
@@ -52,13 +51,6 @@ public class MeController {
     @PreAuthorize("hasRole('CUSTOMER')")
     public Wallet wallet(@AuthenticationPrincipal Jwt jwt) {
         return walletService.findByOwner(userId(jwt));
-    }
-
-    @PostMapping("/wallet/top-up")
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public Wallet topUp(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody AmountRequest request) {
-        Wallet wallet = walletService.findByOwner(userId(jwt));
-        return walletService.topUp(wallet.getId(), request.amount());
     }
 
     @GetMapping("/merchant")
