@@ -13,9 +13,11 @@ import rw.ac.auca.tapwallet.exception.ResourceNotFoundException;
 import rw.ac.auca.tapwallet.repository.PaymentRepository;
 import rw.ac.auca.tapwallet.repository.UserRepository;
 import rw.ac.auca.tapwallet.repository.WalletRepository;
+import rw.ac.auca.tapwallet.security.CurrentActorService;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Business rules:
@@ -33,14 +35,20 @@ public class WalletService {
     private final WalletRepository wallets;
     private final UserRepository users;
     private final PaymentRepository payments;
+    private final ActivityLogService activityLog;
+    private final CurrentActorService currentActor;
 
-    public WalletService(WalletRepository wallets, UserRepository users, PaymentRepository payments) {
+    public WalletService(WalletRepository wallets, UserRepository users, PaymentRepository payments,
+                         ActivityLogService activityLog, CurrentActorService currentActor) {
         this.wallets = wallets;
         this.users = users;
         this.payments = payments;
+        this.activityLog = activityLog;
+        this.currentActor = currentActor;
     }
 
     public Wallet open(WalletRequest request) {
+        requireRwf(request.currency());
         User owner = users.findById(request.ownerId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", request.ownerId()));
         if (owner.getRole() != Role.CUSTOMER) {
@@ -52,7 +60,9 @@ public class WalletService {
         if (wallets.existsByOwnerId(owner.getId())) {
             throw new DuplicateResourceException("User " + owner.getId() + " already has a wallet.");
         }
-        return wallets.save(new Wallet(owner, request.openingBalance(), request.currency()));
+        Wallet wallet = wallets.save(new Wallet(owner, request.openingBalance(), request.currency()));
+        record("WALLET_OPENED", wallet, Map.of("openingBalance", wallet.getBalance().toPlainString()));
+        return wallet;
     }
 
     @Transactional(readOnly = true)
@@ -72,20 +82,23 @@ public class WalletService {
     }
 
     public Wallet update(Long id, WalletUpdateRequest request) {
+        requireRwf(request.currency());
         Wallet wallet = findById(id);
-        if (!wallet.getCurrency().equals(request.currency()) && wallet.getBalance().signum() != 0) {
-            throw new BusinessRuleException("Currency can only be changed while the balance is zero.");
-        }
         wallet.setCurrency(request.currency());
         wallet.setStatus(request.status());
-        return wallets.save(wallet);
+        Wallet saved = wallets.save(wallet);
+        record("WALLET_UPDATED", saved, Map.of("status", saved.getStatus().name()));
+        return saved;
     }
 
     public Wallet topUp(Long id, BigDecimal amount) {
         Wallet wallet = findById(id);
         requireOperable(wallet, amount);
         wallet.credit(amount);
-        return wallets.save(wallet);
+        Wallet saved = wallets.save(wallet);
+        record("WALLET_TOPPED_UP", saved, Map.of("amount", amount.toPlainString(),
+                "balanceAfter", saved.getBalance().toPlainString()));
+        return saved;
     }
 
     public Wallet withdraw(Long id, BigDecimal amount) {
@@ -96,7 +109,10 @@ public class WalletService {
                     + " " + wallet.getCurrency() + ", requested " + amount + ".");
         }
         wallet.debit(amount);
-        return wallets.save(wallet);
+        Wallet saved = wallets.save(wallet);
+        record("WALLET_WITHDRAWN", saved, Map.of("amount", amount.toPlainString(),
+                "balanceAfter", saved.getBalance().toPlainString()));
+        return saved;
     }
 
     public void delete(Long id) {
@@ -108,6 +124,7 @@ public class WalletService {
             throw new BusinessRuleException("A wallet with payment history cannot be deleted.");
         }
         wallets.delete(wallet);
+        record("WALLET_CLOSED", wallet, Map.of("ownerId", wallet.getOwner().getId().toString()));
     }
 
     /** Shared guard used by top-up, withdraw and the payment service. */
@@ -120,6 +137,17 @@ public class WalletService {
         }
         if (!wallet.getOwner().isActive()) {
             throw new BusinessRuleException("The wallet owner's account is frozen.");
+        }
+    }
+
+    private void record(String type, Wallet wallet, Map<String, String> metadata) {
+        activityLog.record(type, currentActor.idOr(wallet.getOwner().getId()), "Wallet", wallet.getId(),
+                type.replace('_', ' ').toLowerCase(), metadata);
+    }
+
+    private void requireRwf(String currency) {
+        if (!"RWF".equals(currency)) {
+            throw new BusinessRuleException("This academic wallet currently supports RWF only.");
         }
     }
 }

@@ -22,5 +22,8 @@ public record UserRequest(
         String phone,
 
         @NotNull(message = "Role is required (ADMIN, CUSTOMER or MERCHANT)")
-        Role role) {
+        Role role,
+
+        @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters")
+        String password) {
 }

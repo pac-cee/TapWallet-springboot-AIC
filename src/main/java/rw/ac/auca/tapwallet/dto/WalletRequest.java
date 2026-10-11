@@ -16,6 +16,6 @@ public record WalletRequest(
         BigDecimal openingBalance,
 
         @NotNull(message = "Currency is required")
-        @Pattern(regexp = "^[A-Z]{3}$", message = "Currency must be a 3-letter code like RWF")
+        @Pattern(regexp = "^RWF$", message = "This academic wallet currently supports RWF only")
         String currency) {
 }

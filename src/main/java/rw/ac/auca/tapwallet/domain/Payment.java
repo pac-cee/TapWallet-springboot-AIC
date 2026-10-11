@@ -8,9 +8,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -20,13 +22,21 @@ import java.util.UUID;
  * it is recorded once and can only be reversed, never edited.
  */
 @Entity
-@Table(name = "payment")
+@Table(name = "payment", indexes = {
+        @Index(name = "idx_payment_wallet_created", columnList = "wallet_id, created_at"),
+        @Index(name = "idx_payment_merchant_created", columnList = "merchant_id, created_at"),
+        @Index(name = "idx_payment_status_created", columnList = "status, created_at")
+})
 public class Payment extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "payment_id")
     private Long id;
+
+    @Version
+    @Column(name = "version", nullable = false, columnDefinition = "bigint default 0")
+    private long version;
 
     @Column(name = "reference", nullable = false, unique = true, length = 20)
     private String reference;

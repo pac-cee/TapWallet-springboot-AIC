@@ -40,6 +40,10 @@ public class User extends AuditableEntity {
     @Column(name = "status", nullable = false, length = 16)
     private AccountStatus status = AccountStatus.ACTIVE;
 
+    @JsonIgnore
+    @Column(name = "password_hash", nullable = false, length = 100)
+    private String passwordHash;
+
     public User() {
     }
 
@@ -49,6 +53,11 @@ public class User extends AuditableEntity {
         this.phone = phone;
         this.role = role;
         this.status = AccountStatus.ACTIVE;
+    }
+
+    public User(String fullName, String email, String phone, Role role, String passwordHash) {
+        this(fullName, email, phone, role);
+        this.passwordHash = passwordHash;
     }
 
     @JsonIgnore
@@ -98,5 +107,13 @@ public class User extends AuditableEntity {
 
     public void setStatus(AccountStatus status) {
         this.status = status;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }

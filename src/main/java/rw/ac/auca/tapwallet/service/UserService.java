@@ -1,6 +1,7 @@
 package rw.ac.auca.tapwallet.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import rw.ac.auca.tapwallet.domain.AccountStatus;
 import rw.ac.auca.tapwallet.domain.User;
@@ -11,8 +12,10 @@ import rw.ac.auca.tapwallet.exception.ResourceNotFoundException;
 import rw.ac.auca.tapwallet.repository.MerchantRepository;
 import rw.ac.auca.tapwallet.repository.UserRepository;
 import rw.ac.auca.tapwallet.repository.WalletRepository;
+import rw.ac.auca.tapwallet.security.CurrentActorService;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Business rules:
@@ -27,11 +30,19 @@ public class UserService {
     private final UserRepository users;
     private final WalletRepository wallets;
     private final MerchantRepository merchants;
+    private final PasswordEncoder passwordEncoder;
+    private final ActivityLogService activityLog;
+    private final CurrentActorService currentActor;
 
-    public UserService(UserRepository users, WalletRepository wallets, MerchantRepository merchants) {
+    public UserService(UserRepository users, WalletRepository wallets, MerchantRepository merchants,
+                       PasswordEncoder passwordEncoder, ActivityLogService activityLog,
+                       CurrentActorService currentActor) {
         this.users = users;
         this.wallets = wallets;
         this.merchants = merchants;
+        this.passwordEncoder = passwordEncoder;
+        this.activityLog = activityLog;
+        this.currentActor = currentActor;
     }
 
     public User create(UserRequest request) {
@@ -43,7 +54,13 @@ public class UserService {
         if (users.existsByPhone(phone)) {
             throw new DuplicateResourceException("Phone " + phone + " is already registered.");
         }
-        return users.save(new User(request.fullName().trim(), email, phone, request.role()));
+        String rawPassword = request.password() == null || request.password().isBlank()
+                ? "ChangeMe@123"
+                : request.password();
+        User saved = users.save(new User(request.fullName().trim(), email, phone, request.role(),
+                passwordEncoder.encode(rawPassword)));
+        record("USER_CREATED", saved, Map.of("role", saved.getRole().name()));
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -73,19 +90,28 @@ public class UserService {
         user.setEmail(email);
         user.setPhone(phone);
         user.setRole(request.role());
-        return users.save(user);
+        if (request.password() != null && !request.password().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(request.password()));
+        }
+        User saved = users.save(user);
+        record("USER_UPDATED", saved, Map.of("role", saved.getRole().name()));
+        return saved;
     }
 
     public User freeze(Long id) {
         User user = findById(id);
         user.setStatus(AccountStatus.FROZEN);
-        return users.save(user);
+        User saved = users.save(user);
+        record("USER_FROZEN", saved, Map.of("status", saved.getStatus().name()));
+        return saved;
     }
 
     public User activate(Long id) {
         User user = findById(id);
         user.setStatus(AccountStatus.ACTIVE);
-        return users.save(user);
+        User saved = users.save(user);
+        record("USER_ACTIVATED", saved, Map.of("status", saved.getStatus().name()));
+        return saved;
     }
 
     public void delete(Long id) {
@@ -97,11 +123,17 @@ public class UserService {
             throw new BusinessRuleException("Delete the user's merchant shop before deleting the user.");
         }
         users.delete(user);
+        record("USER_DELETED", user, Map.of("role", user.getRole().name()));
     }
 
     /** Stores every phone in the +250XXXXXXXXX form so uniqueness is not fooled by formatting. */
     private String normalisePhone(String raw) {
         String digits = raw.replaceAll("[^0-9]", "");
         return "+" + digits;
+    }
+
+    private void record(String type, User user, Map<String, String> metadata) {
+        activityLog.record(type, currentActor.idOr(user.getId()), "User", user.getId(),
+                type.replace('_', ' ').toLowerCase(), metadata);
     }
 }

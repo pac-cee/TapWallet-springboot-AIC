@@ -8,9 +8,13 @@ import rw.ac.auca.tapwallet.domain.Wallet;
 import rw.ac.auca.tapwallet.dto.PaymentRequest;
 import rw.ac.auca.tapwallet.exception.BusinessRuleException;
 import rw.ac.auca.tapwallet.exception.ResourceNotFoundException;
+import rw.ac.auca.tapwallet.event.NotificationEvent;
+import rw.ac.auca.tapwallet.event.NotificationPublisher;
 import rw.ac.auca.tapwallet.repository.PaymentRepository;
+import rw.ac.auca.tapwallet.security.CurrentActorService;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Paying spans two aggregates (Wallet and Merchant), so the rule lives here.
@@ -29,11 +33,19 @@ public class PaymentService {
     private final PaymentRepository payments;
     private final WalletService walletService;
     private final MerchantService merchantService;
+    private final ActivityLogService activityLog;
+    private final NotificationPublisher notificationPublisher;
+    private final CurrentActorService currentActor;
 
-    public PaymentService(PaymentRepository payments, WalletService walletService, MerchantService merchantService) {
+    public PaymentService(PaymentRepository payments, WalletService walletService, MerchantService merchantService,
+                          ActivityLogService activityLog, NotificationPublisher notificationPublisher,
+                          CurrentActorService currentActor) {
         this.payments = payments;
         this.walletService = walletService;
         this.merchantService = merchantService;
+        this.activityLog = activityLog;
+        this.notificationPublisher = notificationPublisher;
+        this.currentActor = currentActor;
     }
 
     public Payment pay(PaymentRequest request) {
@@ -54,7 +66,19 @@ public class PaymentService {
 
         wallet.debit(request.amount());
         merchant.receive(request.amount());
-        return payments.save(new Payment(wallet, merchant, request.amount(), request.note()));
+        Payment payment = payments.save(new Payment(wallet, merchant, request.amount(), request.note()));
+        activityLog.record("PAYMENT_COMPLETED", currentActor.idOr(wallet.getOwner().getId()), "Payment", payment.getId(),
+                "Payment " + payment.getReference() + " completed",
+                Map.of("amount", payment.getAmount().toPlainString(), "currency", payment.getCurrency(),
+                        "merchantCode", merchant.getCode()));
+        notificationPublisher.publish(NotificationEvent.email("payment.completed", wallet.getOwner().getEmail(),
+                "Your payment of " + payment.getAmount() + " " + payment.getCurrency() + " to "
+                        + merchant.getBusinessName() + " was completed.",
+                Map.of("reference", payment.getReference())));
+        notificationPublisher.publish(NotificationEvent.sms("payment.completed", wallet.getOwner().getPhone(),
+                "TapWallet: payment " + payment.getReference() + " completed.",
+                Map.of("reference", payment.getReference())));
+        return payment;
     }
 
     @Transactional(readOnly = true)
@@ -87,6 +111,18 @@ public class PaymentService {
         payment.markReversed();
         payment.getMerchant().refund(payment.getAmount());
         payment.getWallet().credit(payment.getAmount());
-        return payments.save(payment);
+        Payment saved = payments.save(payment);
+        activityLog.record("PAYMENT_REVERSED", currentActor.idOr(payment.getWallet().getOwner().getId()), "Payment", payment.getId(),
+                "Payment " + payment.getReference() + " reversed",
+                Map.of("amount", payment.getAmount().toPlainString(), "currency", payment.getCurrency()));
+        notificationPublisher.publish(NotificationEvent.email("payment.reversed",
+                payment.getWallet().getOwner().getEmail(),
+                "Payment " + payment.getReference() + " was reversed and refunded.",
+                Map.of("reference", payment.getReference())));
+        notificationPublisher.publish(NotificationEvent.sms("payment.reversed",
+                payment.getWallet().getOwner().getPhone(),
+                "TapWallet: payment " + payment.getReference() + " was reversed and refunded.",
+                Map.of("reference", payment.getReference())));
+        return saved;
     }
 }
